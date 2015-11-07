@@ -1,0 +1,11 @@
+{
+  "name": "sobel-operator",
+  "version": "1.0.0",
+  "description": "Node.js implementation of the sobel operator (edge detection)",
+  "main": "sobel.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Cameron Kelliher",
+  "license": "ISC"
+}
