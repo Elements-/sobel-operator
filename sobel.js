@@ -1,11 +1,12 @@
 var PNG = require('node-png').PNG;
 var fs = require('fs');
+var moment = require('moment');
 
 var png = new PNG({
   filterType: -1
 });
 
-src = fs.createReadStream('image.png'),
+src = fs.createReadStream('city.png'),
 dst = fs.createWriteStream('/var/www/elmnts.co/image-processed.png');
 
 var xderivatives = [
@@ -20,52 +21,67 @@ var yderivatives = [
   [-1, 0, 1]
 ];
 
-png.on('parsed', function() {
-  //console.log(png);
-  var newData = new Buffer(png.width*png.height);
+var timeData = {
+  startRead: moment().valueOf(),
+  endRead: 0,
+  endProcess: 0
+}
 
-  for(var y = 1; y+1 < png.height; y ++) {
-    for(var x = 1; x+1 < png.width; x ++) {
-      var idx = (png.width * y + x) << 2;
-      var r = png.data[idx];
-      var g = png.data[idx+1];
-      var b = png.data[idx+2];
-      var a = png.data[idx+3];
-
-      var avg = Math.floor((r + g + b) / 3);
-
-      var xbump = 0;
-      var ybump = 0;
-
-      for(var xOffset = -1; xOffset <= 1; xOffset++) {
-        for(var yOffset = -1; yOffset <= 1; yOffset++) {
-          var pixelIndex = (png.width * (y+yOffset) + (x+xOffset)) << 2;
-          xbump += png.data[pixelIndex] * xderivatives[yOffset+1][xOffset+1];
-          ybump += png.data[pixelIndex] * yderivatives[yOffset+1][xOffset+1];
+function getBump(x, y) {
+  var xbump = 0;
+  var ybump = 0;
+  for(var xOffset = -1; xOffset <= 1; xOffset++) {
+    for(var yOffset = -1; yOffset <= 1; yOffset++) {
+      var idx = getIndex(x + xOffset, y + yOffset);
+      var colorWeights = 0;
+      for(var color = 0; color <=2; color++) {
+        if(png.data[idx+color]) {
+          colorWeights += png.data[idx+color]
+        } else {
+          return 0;
         }
       }
-
-      var pixelBump = Math.floor(Math.sqrt(Math.pow(xbump, 2) + Math.pow(ybump, 2)) / 3);
-
-      newData[idx] = pixelBump;
-      newData[idx+1] = pixelBump;
-      newData[idx+2] = pixelBump;
-
-      console.log('Pixel:', r,g,b,a, pixelBump);
-
-      if(x+2 == png.width && y+2 == png.height) {
-        console.log('\n\n\n\n\n\n\ndone');
-        exportPng(newData);
-      }
+      var greyscale = Math.floor(colorWeights / 3);
+      xbump += greyscale * xderivatives[yOffset+1][xOffset+1];
+      ybump += greyscale * yderivatives[yOffset+1][xOffset+1];
     }
   }
-  console.log('done');
+  var bump = Math.floor(Math.sqrt(Math.pow(xbump, 2) + Math.pow(ybump, 2)) / 3);
+  return bump;
+}
+
+function getIndex(x, y) {
+  return (png.width * y + x) << 2;
+}
+
+function printStats() {
+  var loadTime = timeData.endRead - timeData.startRead
+  var processTime = timeData.endProcess - timeData.endRead;
+  console.log('Loaded image in ' + loadTime + 'ms, processed in ' + processTime + 'ms (' + Math.floor((png.width * png.height) /  processTime) + ' px/s)');
+}
+
+png.on('parsed', function() {
+  timeData.endRead = moment().valueOf();
+  var newData = new Buffer(png.width*png.height*4);
+
+  for(var y = 0; y < png.height; y ++) {
+    for(var x = 0; x < png.width; x ++) {
+      var index = getIndex(x, y);
+      var bump = getBump(x, y);
+      for(var color = 0; color <= 2; color++) {
+        newData[index+color] = bump;
+      }
+      newData[index+3] = 255;
+    }
+  }
+  timeData.endProcess = moment().valueOf();
+  exportPng(newData);
+  printStats();
 });
 
 function exportPng(newData) {
   png.data = newData;
   png.pack().pipe(dst);
-  //process.exit(0);
 }
 
 src.pipe(png);
