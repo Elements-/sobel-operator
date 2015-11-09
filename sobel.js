@@ -1,12 +1,13 @@
 var PNG = require('node-png').PNG;
 var fs = require('fs');
 var moment = require('moment');
+var async = require('async');
 
 var png = new PNG({
   filterType: -1
 });
 
-src = fs.createReadStream('city.png'),
+src = fs.createReadStream('tiger.png'),
 dst = fs.createWriteStream('/var/www/elmnts.co/image-processed.png');
 
 var xderivatives = [
@@ -27,7 +28,7 @@ var timeData = {
   endProcess: 0
 }
 
-function getBump(x, y) {
+var getBump = function(x, y) {
   var xbump = 0;
   var ybump = 0;
   for(var xOffset = -1; xOffset <= 1; xOffset++) {
@@ -60,24 +61,53 @@ function printStats() {
   console.log('Loaded image in ' + loadTime + 'ms, processed in ' + processTime + 'ms (' + Math.floor((png.width * png.height) /  processTime) + ' px/s)');
 }
 
+var asyncThreads = [];
+var threads = process.argv[2];
+
+var pixelsPerThread = Math.floor((png.width * png.height) / threads);
+
 png.on('parsed', function() {
   timeData.endRead = moment().valueOf();
   var newData = new Buffer(png.width*png.height*4);
 
-  for(var y = 0; y < png.height; y ++) {
-    for(var x = 0; x < png.width; x ++) {
-      var index = getIndex(x, y);
-      var bump = getBump(x, y);
-      for(var color = 0; color <= 2; color++) {
-        newData[index+color] = bump;
+  var handle = function(startY, endY, width, callback) {
+    var chunk = new Buffer(width * (endY-startY));
+    console.log('here', startY, endY);
+
+    for(var y = startY; y < endY; y ++) {
+      for(var x = 0; x < width; x++) {
+        var index = ((y-startY)*width) + x;
+        var bump = getBump(x, y);
+        chunk[index] = bump;
       }
-      newData[index+3] = 255;
     }
+    callback(null, chunk);
   }
-  timeData.endProcess = moment().valueOf();
-  exportPng(newData);
-  printStats();
+
+  for(var threadNum = 0; threadNum < threads; threadNum++) {
+    var startY = Math.floor(png.height / threads) * threadNum;
+    var endY = startY + Math.floor(png.height / threads);
+    asyncThreads.push(handle.bind(null, startY, endY, png.width));
+  }
+
+  async.parallel(asyncThreads, function(err, results) {
+    var currentIndex = 0;
+    for(var i = 0; i < results.length; i++) {
+      for(var k = 0; k < results[i].length; k++) {
+        for(var color = 0; color <= 2; color++) {
+          newData[currentIndex+color] = results[i][k];
+        }
+        newData[currentIndex+3] = 255;
+        currentIndex += 4;
+      }
+    }
+    console.log(newData);
+    timeData.endProcess = moment().valueOf();
+    exportPng(newData);
+    printStats();
+  });
 });
+
 
 function exportPng(newData) {
   png.data = newData;
@@ -85,12 +115,3 @@ function exportPng(newData) {
 }
 
 src.pipe(png);
-
-/**PNG.decode('image.png', function(pixels) {
-    console.log(pixels);
-    var greyscaleImage = [];
-    for(var i = 0; i < pixels.length; i += 4) {
-      var avg = Math.floor((pixels[i] + pixels[i+1] + pixels[i+2] + pixels[i+3]) / 4);
-      console.log(avg);
-    }
-});**/
