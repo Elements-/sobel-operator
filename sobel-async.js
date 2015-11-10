@@ -50,7 +50,7 @@ var getBump = function(x, y) {
   var bump = Math.floor(Math.sqrt(Math.pow(xbump, 2) + Math.pow(ybump, 2)) / 3);
   return {
     bump : bump,
-    direction : Math.atan2(ybump, xbump) / Math.PI
+    direction : Math.floor((Math.atan2(ybump, xbump) / Math.PI) * 765)
   }
 }
 
@@ -83,10 +83,11 @@ png.on('parsed', function() {
         var bump = res.bump;
         var direction = res.direction;
 
-        chunk[index] = 255;
-        chunk[index+1] = 255;
-        chunk[index+2] = 255;
+        chunk[index] = direction-510;
+        direction-255 > 255 ? chunk[index+1] = 255 : chunk[index+1] = direction-255;
+        direction > 255 ? chunk[index+2] = 255 : chunk[index+2] = direction;
         chunk[index+3] = 255;
+
       }
     }
     callback(null, chunk);
