@@ -29,4 +29,4 @@ node /root/nodejs/sobelOperator/sobel.js tests/nyc.png result.png
 Note: This image is very large however it still only took a few seconds to process on a small server.
 
 ![unprocessed](https://github.com/Elements-/sobel-operator/raw/master/tests/nyc.png)
-![processed](http://files.elmnts.co/dl/ukk1tcp4lsor/result.png)
+![processed](result.png)
