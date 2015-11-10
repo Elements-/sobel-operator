@@ -1,14 +1,13 @@
 var PNG = require('node-png').PNG;
 var fs = require('fs');
 var moment = require('moment');
-var async = require('async');
 
 var png = new PNG({
   filterType: -1
 });
 
-src = fs.createReadStream('city.png'),
-dst = fs.createWriteStream('/var/www/elmnts.co/image-processed.png');
+var src = fs.createReadStream(process.argv[2]);
+var dst = fs.createWriteStream(process.argv[3]);
 
 var xderivatives = [
   [-1, -2, -1],
@@ -28,7 +27,7 @@ var timeData = {
   endProcess: 0
 }
 
-var getBump = function(x, y) {
+function getBump(x, y) {
   var xbump = 0;
   var ybump = 0;
   for(var xOffset = -1; xOffset <= 1; xOffset++) {
@@ -48,10 +47,7 @@ var getBump = function(x, y) {
     }
   }
   var bump = Math.floor(Math.sqrt(Math.pow(xbump, 2) + Math.pow(ybump, 2)) / 3);
-  return {
-    bump : bump,
-    direction : Math.atan2(ybump, xbump) / Math.PI
-  }
+  return bump;
 }
 
 function getIndex(x, y) {
@@ -61,61 +57,27 @@ function getIndex(x, y) {
 function printStats() {
   var loadTime = timeData.endRead - timeData.startRead
   var processTime = timeData.endProcess - timeData.endRead;
-  console.log('Loaded image in ' + loadTime + 'ms, processed in ' + processTime + 'ms (' + Math.floor((png.width * png.height) /  processTime) + ' px/s)');
+  console.log('Loaded image in ' + loadTime + 'ms, processed in ' + processTime + 'ms (' + Math.floor((png.width * png.height) /  processTime)*1000 + ' px/s)');
 }
-
-var asyncThreads = [];
-var threads = process.argv[2];
-
-var pixelsPerThread = Math.floor((png.width * png.height) / threads);
 
 png.on('parsed', function() {
   timeData.endRead = moment().valueOf();
   var newData = new Buffer(png.width*png.height*4);
 
-  var handle = function(startY, endY, width, callback) {
-    var chunk = new Buffer(width * (endY-startY)*3);
-
-    for(var y = startY; y < endY; y ++) {
-      for(var x = 0; x < width; x++) {
-        var index = (((y-startY)*width) + x) * 4;
-        var res = getBump(x, y);
-        var bump = res.bump;
-        var direction = res.direction;
-
-        chunk[index] = 255;
-        chunk[index+1] = 255;
-        chunk[index+2] = 255;
-        chunk[index+3] = 255;
+  for(var y = 0; y < png.height; y ++) {
+    for(var x = 0; x < png.width; x ++) {
+      var index = getIndex(x, y);
+      var bump = getBump(x, y);
+      for(var color = 0; color <= 2; color++) {
+        newData[index+color] = bump;
       }
+      newData[index+3] = 255;
     }
-    callback(null, chunk);
   }
-
-  for(var threadNum = 0; threadNum < threads; threadNum++) {
-    var startY = Math.floor(png.height / threads) * threadNum;
-    var endY = startY + Math.floor(png.height / threads);
-    asyncThreads.push(handle.bind(null, startY, endY, png.width));
-  }
-
-  async.parallel(asyncThreads, function(err, results) {
-    var currentIndex = 0;
-    for(var i = 0; i < results.length; i++) {
-      for(var k = 0; k < results[i].length; k += 4) {
-        for(var color = 0; color <= 2; color++) {
-          (color+1) * Math.PI
-          newData[currentIndex+color] = results[i][k];
-        }
-        newData[currentIndex+3] = 255;
-        currentIndex += 4;
-      }
-    }
-    timeData.endProcess = moment().valueOf();
-    exportPng(newData);
-    printStats();
-  });
+  timeData.endProcess = moment().valueOf();
+  exportPng(newData);
+  printStats();
 });
-
 
 function exportPng(newData) {
   png.data = newData;
