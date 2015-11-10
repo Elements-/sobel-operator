@@ -6,8 +6,22 @@ var png = new PNG({
   filterType: -1
 });
 
-var src = fs.createReadStream(process.argv[2]);
-var dst = fs.createWriteStream(process.argv[3]);
+var usage = 'node ' + process.argv[1] + ' <inputPNG> <outputPNG>\ne.x. node ' + process.argv[1] + ' tests/nyc.png result.png';
+
+var src, dst;
+try {
+  if(fs.lstatSync(process.argv[2]).isFile()) {
+    src = fs.createReadStream(process.argv[2]);
+  } else {
+    console.log(process.argv[2] + 'is not a file.\n\n' + usage);
+    process.exit();
+  }
+  dst = fs.createWriteStream(process.argv[3]);
+} catch(err) {
+  console.log(err + '\n\n' + usage);
+  process.exit();
+}
+console.log('Processing image...');
 
 var xderivatives = [
   [-1, -2, -1],
@@ -57,7 +71,7 @@ function getIndex(x, y) {
 function printStats() {
   var loadTime = timeData.endRead - timeData.startRead
   var processTime = timeData.endProcess - timeData.endRead;
-  console.log('Loaded image in ' + loadTime + 'ms, processed in ' + processTime + 'ms (' + Math.floor((png.width * png.height) /  processTime)*1000 + ' px/s)');
+  console.log('Loaded ' + process.argv[2] + ' in ' + loadTime + 'ms, processed in ' + processTime + 'ms (' + numberWithCommas(Math.floor((png.width * png.height) /  processTime)*1000) + ' pixels/s)');
 }
 
 png.on('parsed', function() {
@@ -82,6 +96,10 @@ png.on('parsed', function() {
 function exportPng(newData) {
   png.data = newData;
   png.pack().pipe(dst);
+}
+
+function numberWithCommas(x) {
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 src.pipe(png);

@@ -1,14 +1,20 @@
 {
-  "name": "sobel-operator",
-  "version": "1.0.0",
+  "name": "sobel-cli",
+  "version": "1.0.1",
   "description": "Node.js implementation of the sobel operator (edge detection)",
   "main": "sobel.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node sobel.js tests/nyc.png result.png"
   },
   "author": "Cameron Kelliher",
   "license": "ISC",
   "dependencies": {
-    "async": "^1.5.0"
+    "fs": "0.0.2",
+    "moment": "^2.10.6",
+    "node-png": "^0.4.3"
+  },
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/Elements-/sobel-operator.git"
   }
 }
