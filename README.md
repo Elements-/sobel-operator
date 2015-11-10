@@ -12,12 +12,13 @@ node sobel.js input.png output.png
 ```
 
 ### Kernels
-Y  ![alt tag](http://files.elmnts.co/dl/fxpgpcrtfbt9/png.png) X ![alt tag](http://files.elmnts.co/dl/mxh7mhq1714i/png.png)
+Y  ![y](y.png) X ![x](x.png)
 
 
 ### Example
 Note: This image is very large however it still only took a few seconds to process.
 
-![alt tag](http://files.elmnts.co/dl/98wlx1jrlik9/nyc.png)
-![alt tag](http://files.elmnts.co/dl/acoejxt21emi/image-processed.png)
+![unprocessed](nyc.png)
+![processed](image-processed.png)
+
 
