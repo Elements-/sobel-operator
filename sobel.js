@@ -1,3 +1,5 @@
+#! /usr/bin/env node
+console.log(process.argv);
 var PNG = require('node-png').PNG;
 var fs = require('fs');
 var moment = require('moment');

@@ -12,7 +12,7 @@ node sobel.js input.png output.png
 ```
 
 ### Kernels
-Y  ![y](https://github.com/Elements-/sobel-operator/raw/master/y.png) X ![x](https://github.com/Elements-/sobel-operator/raw/master/x.png)
+![kernels](https://github.com/Elements-/sobel-operator/raw/master/kernels.png)
 
 ### Installation
 Install the CLI
