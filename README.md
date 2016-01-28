@@ -22,7 +22,7 @@ npm install sobel-cli -g
 
 Give it a try!
 ```
-node /root/nodejs/sobelOperator/sobel.js tests/nyc.png result.png
+node sobel.js myImage.png edges.png
 ```
 
 ### Example of the Sobel Operator
